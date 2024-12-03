@@ -15,3 +15,26 @@ For example:
 <div id="comments" data-uri="https://bsky.app/profile/did:plc:tmrrt2lsbtbippdbqky7umi6/post/3lbkaag45us2o" style="width: 600px;"></div>
 <script src="bsky-comments.js"></script>
 ```
+
+
+In Hugo specifically, I have a `bsky_thread` parameter in the markdown frontmatter params:
+
+```markdown
+---
+date: '2024-11-26T08:06:35-06:00'
+title: 'Bluesky Website Comments Using Just JavaScript (for Hugo Blogs or Anywhere Else)'
+author: Nicholas Sideras
+bsky_thread: https://bsky.app/profile/nicholas.sideras.net/post/3lbudoukz7c2y
+categories:
+ - technology
+---
+```
+
+Then in my template, I check for that value and render the markup:
+```HTML
+      {{- if .Params.bsky_thread }}
+      <h5 style="margin: 2em 0em 1em 0em;">Reply to <a style="text-decoration: underline;" href="{{.Params.bsky_thread}}">this post on Bluesky</a> to leave a comment</h5>
+      <div id="comments" data-uri="{{.Params.bsky_thread}}" style="width: 600px; margin-bottom: 2em;"></div>
+      <script src="/bsky-comments.js"></script>
+      {{ end }}
+```
