@@ -149,21 +149,21 @@ const rootElement = document.querySelector("#comments");
         return richText;
       }
 
-      function renderAttachment(comment) {
+      function renderAttachment(post) {
         let attachment = "";
-        if (comment.post.embed) {
-          const embedType = comment.post.embed.$type;
+        if (post.embed) {
+          const embedType = post.embed.$type;
       
           if (embedType === "app.bsky.embed.external#view") {
-            const {uri, title, description} = comment.post.embed.external;
+            const {uri, title, description} = post.embed.external;
             if (uri.includes(".gif?")) {
               attachment = `<img src="${uri}" title="${title}" alt="${description}">`;
             }
           } else if (embedType === "app.bsky.embed.images#view") {
-            const images = comment.post.record.embed.images;
+            const images = post.record.embed.images;
             attachment = images.map(image => {
-              const thumb = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, true);
-              const orig = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, false);
+              const thumb = ToBskyImgUrl(post.author.did, image.image.ref.$link, true);
+              const orig = ToBskyImgUrl(post.author.did, image.image.ref.$link, false);
               return `<a href="${orig}" target="_blank"><img src="${thumb}" alt="${image.alt}"></a>`;
             }).join('');
           }
@@ -185,7 +185,7 @@ const rootElement = document.querySelector("#comments");
         </a></div>
         <a href="${ToBskyUrl(comment.post.uri)}" rel="ugc" style="color: #000; text-decoration: none;">
         <div>${renderRichText(comment.post.record)}</div>
-        <div>${renderAttachment(comment)}</div>
+        <div>${renderAttachment(comment.post)}</div>
         <div>
           <!-- icons from https://www.systemuicons.com/ -->
             <span style="margin-right: 1em;">
