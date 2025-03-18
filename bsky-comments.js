@@ -40,7 +40,7 @@ const rootElement = document.querySelector("#comments");
             typeof data.thread.replies != "undefined" &&
             data.thread.replies.length > 0
           ) {
-            rootElement.appendChild(renderComments(data.thread));
+            rootElement.appendChild(DOMPurify.sanitize(renderComments(data.thread), {RETURN_DOM_FRAGMENT: true}));
           } else {
             const noReplies = document.createElement("em");
             noReplies.innerText = "No replies.";
@@ -84,7 +84,7 @@ const rootElement = document.querySelector("#comments");
 
       function renderComments(thread)
       {
-        const commentsNode = document.createElement("div");
+        const commentsNode = document.createDocumentFragment();
         for (const comment of thread.replies) {
             var renderedString = renderComment(comment);
             var htmlContent = createElementFromHTML(renderedString);

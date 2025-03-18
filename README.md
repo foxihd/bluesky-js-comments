@@ -12,6 +12,7 @@ To use this script, add a `div` tag to your page with an `id` of "comments" and 
 For example:
 
 ```HTML
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
 <div id="comments" data-uri="https://bsky.app/profile/did:plc:tmrrt2lsbtbippdbqky7umi6/post/3lbkaag45us2o" style="width: 600px;"></div>
 <script src="bsky-comments.js"></script>
 ```
