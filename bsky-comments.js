@@ -123,7 +123,8 @@ const rootElement = document.querySelector("#comments");
             <svg style="position: relative; top: .3em;" xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21">
                 <path fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" d="M11 16.517c4.418 0 8-3.284 8-7.017S15.418 3 11 3S3 6.026 3 9.759c0 1.457.546 2.807 1.475 3.91L3.5 18.25l3.916-2.447a9.2 9.2 0 0 0 3.584.714" />
             </svg>
-            ${comment.post.replyCount}</span>
+            ${comment.post.repostCount > 0 ? comment.post.repostCount : ''}
+            </span>
 
 
             <span style="margin-right: 1em;">
@@ -134,14 +135,14 @@ const rootElement = document.querySelector("#comments");
                     <path d="M11.5 16.5h-3a4 4 0 0 1-4-4v-8" />
                 </g>
             </svg>
-            ${comment.post.repostCount}
+            ${comment.post.repostCount > 0 ? comment.post.repostCount : ''}
         </span>
 
         <span style="margin-right: 1em;">
             <svg style="position: relative; top: .3em;" xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21">
                 <path fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" d="M10.5 6.5c.5-2.5 4.343-2.657 6-1c1.603 1.603 1.5 4.334 0 6l-6 6l-6-6a4.243 4.243 0 0 1 0-6c1.55-1.55 5.5-1.5 6 1" />
             </svg>
-            ${comment.post.likeCount}
+            ${comment.post.likeCount > 0 ? comment.post.likeCount : ''}
         </span>
             
         </div></a>
