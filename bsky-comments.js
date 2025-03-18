@@ -106,9 +106,7 @@ const rootElement = document.querySelector("#comments");
         return div.firstChild;
       }
 
-      function renderComment(comment) {
-       var replyDate = new Date(comment.post.record.createdAt);
-
+      // adjusted code from https://capscollective.com/blog/bluesky-blog-comments/
       function renderRichText(record) {
         let richText = ``
     
@@ -150,27 +148,32 @@ const rootElement = document.querySelector("#comments");
     
         return richText;
       }
-    
-      let renderAttachment = "";
-      if (comment.post.embed) {
-        const embedType = comment.post.embed.$type;
-    
-        if (embedType === "app.bsky.embed.external#view") {
-          const {uri, title, description} = comment.post.embed.external;
-          if (uri.includes(".gif?")) {
-            renderAttachment = `<img src="${uri}" title="${title}" alt="${description}">`;
-          }
-        } else if (embedType === "app.bsky.embed.images#view") {
-          const images = comment.post.record.embed.images;
-          renderAttachment = images.map(image => {
-            const thumb = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, true);
-            const orig = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, false);
-            return `<a href="${orig}" target="_blank"><img src="${thumb}" alt="${image.alt}"></a>`;
-          }).join('');
-        }
-      }
 
-        return `<ul class="comment" style="display: flex; list-style: none;">
+      function renderAttachment(comment) {
+        let attachment = "";
+        if (comment.post.embed) {
+          const embedType = comment.post.embed.$type;
+      
+          if (embedType === "app.bsky.embed.external#view") {
+            const {uri, title, description} = comment.post.embed.external;
+            if (uri.includes(".gif?")) {
+              attachment = `<img src="${uri}" title="${title}" alt="${description}">`;
+            }
+          } else if (embedType === "app.bsky.embed.images#view") {
+            const images = comment.post.record.embed.images;
+            attachment = images.map(image => {
+              const thumb = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, true);
+              const orig = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, false);
+              return `<a href="${orig}" target="_blank"><img src="${thumb}" alt="${image.alt}"></a>`;
+            }).join('');
+          }
+        }
+        return attachment;
+      }
+    
+      function renderComment(comment) {
+       var replyDate = new Date(comment.post.record.createdAt);
+       return `<ul class="comment" style="display: flex; list-style: none;">
       <li style="margin-right: 10px;">
         <img src="${comment.post.author.avatar}" width="42px" height="42px" style="clip-path: circle()" />
       </li>
@@ -182,7 +185,7 @@ const rootElement = document.querySelector("#comments");
         </a></div>
         <a href="${ToBskyUrl(comment.post.uri)}" rel="ugc" style="color: #000; text-decoration: none;">
         <div>${renderRichText(comment.post.record)}</div>
-        <div>${renderAttachment}</div>
+        <div>${renderAttachment(comment)}</div>
         <div>
           <!-- icons from https://www.systemuicons.com/ -->
             <span style="margin-right: 1em;">
