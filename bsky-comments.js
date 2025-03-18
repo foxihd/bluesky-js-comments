@@ -24,196 +24,197 @@ SOFTWARE.
 
 const rootElement = document.querySelector("#comments");
 
-      var atProto = ToAtProtoUri(rootElement.dataset.uri);
+var atProto = ToAtProtoUri(rootElement.dataset.uri);
 
-      fetch(
+fetch(
         "https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=" + atProto
-      )
-        .then((response) => {
-          if (!response.ok) {
+    )
+    .then((response) => {
+        if (!response.ok) {
             throw new Error(`HTTP error, status = ${response.status}`);
-          }
-          return response.json();
-        })
-        .then((data) => {
-          if (
+        }
+        return response.json();
+    })
+    .then((data) => {
+        if (
             typeof data.thread.replies != "undefined" &&
             data.thread.replies.length > 0
-          ) {
-            rootElement.appendChild(DOMPurify.sanitize(renderComments(data.thread), {RETURN_DOM_FRAGMENT: true}));
-          } else {
+        ) {
+            rootElement.appendChild(DOMPurify.sanitize(renderComments(data.thread), {
+                RETURN_DOM_FRAGMENT: true
+            }));
+        } else {
             const noReplies = document.createElement("em");
             noReplies.innerText = "No replies.";
             rootElement.appendChild(noReplies);
-          }
-        })
-        .catch((error) => {
-          const p = document.createElement("p");
-          p.appendChild(document.createTextNode(`Error: ${error.message}`));
-          document.body.appendChild(p, rootElement);
-        });
-
-        function ToBskyUrl(uri) {
-            var splitUri = uri.split('/');
-            if(splitUri[0] === 'at:')
-            {
-                return 'https://bsky.app/profile/' + splitUri[2] + '/post/' + splitUri[4];
-            }
-            else
-            {
-                return uri;
-            }
         }
+    })
+    .catch((error) => {
+        const p = document.createElement("p");
+        p.appendChild(document.createTextNode(`Error: ${error.message}`));
+        document.body.appendChild(p, rootElement);
+    });
 
-        function ToAtProtoUri(url)
-        {
-            var splitUri = url.split('/');
-            if(splitUri[0] === 'https:' || splitUri[0] === 'http:')
-            {
-                return 'at://' + splitUri[4] + '/app.bsky.feed.post/' + splitUri[6];
-            }
-            else
-            {
-                return url;
-            }
-        }
+function ToBskyUrl(uri) {
+    var splitUri = uri.split('/');
+    if (splitUri[0] === 'at:') {
+        return 'https://bsky.app/profile/' + splitUri[2] + '/post/' + splitUri[4];
+    } else {
+        return uri;
+    }
+}
 
-        function ToBskyImgUrl(did, blobLink, thumb) {
-          return `https://cdn.bsky.app/img/${thumb ? "feed_thumb" : "feed_fullsize"}/plain/${did}/${blobLink}`;
-        }       
+function ToAtProtoUri(url) {
+    var splitUri = url.split('/');
+    if (splitUri[0] === 'https:' || splitUri[0] === 'http:') {
+        return 'at://' + splitUri[4] + '/app.bsky.feed.post/' + splitUri[6];
+    } else {
+        return url;
+    }
+}
 
-      function renderComments(thread)
-      {
-        const commentsNode = document.createDocumentFragment();
-        for (const comment of thread.replies) {
-            var renderedString = renderComment(comment);
-            var htmlContent = createElementFromHTML(renderedString);
+function ToBskyImgUrl(did, blobLink, thumb) {
+    return `https://cdn.bsky.app/img/${thumb ? "feed_thumb" : "feed_fullsize"}/plain/${did}/${blobLink}`;
+}
 
-            htmlContent.querySelector(".replies").appendChild(renderComments(comment));
+function renderComments(thread) {
+    const commentsNode = document.createDocumentFragment();
+    for (const comment of thread.replies) {
+        var renderedString = renderComment(comment);
+        var htmlContent = createElementFromHTML(renderedString);
 
-            commentsNode.appendChild(htmlContent);
-        }
+        htmlContent.querySelector(".replies").appendChild(renderComments(comment));
 
-        return commentsNode;
-      }
+        commentsNode.appendChild(htmlContent);
+    }
 
-      //https://stackoverflow.com/a/494348
-      function createElementFromHTML(htmlString) {
-        var div = document.createElement('div');
-        div.innerHTML = htmlString.trim();
-      
-        // Change this to div.childNodes to support multiple top-level nodes.
-        return div.firstChild;
-      }
+    return commentsNode;
+}
 
-      function renderComment(comment) {
-       var replyDate = new Date(comment.post.record.createdAt);
+//https://stackoverflow.com/a/494348
+function createElementFromHTML(htmlString) {
+    var div = document.createElement('div');
+    div.innerHTML = htmlString.trim();
 
-      function renderRichText(record) {
+    // Change this to div.childNodes to support multiple top-level nodes.
+    return div.firstChild;
+}
+
+function renderComment(comment) {
+    var replyDate = new Date(comment.post.record.createdAt);
+
+    function renderRichText(record) {
         let richText = ``
-    
+
         const textEncoder = new TextEncoder();
         const utf8Decoder = new TextDecoder();
         const utf8Text = new Uint8Array(record.text.length * 3);
         textEncoder.encodeInto(record.text, utf8Text);
-    
+
         var charIdx = 0;
         for (const facetIdx in record.facets) {
-          const facet = record.facets[facetIdx];
-          const facetFeature = facet.features[0];
-          const facetType = facetFeature.$type;
-    
-          var facetLink = "#";
-          if (facetType == "app.bsky.richtext.facet#tag") {
-            facetLink = `https://bsky.app/hashtag/${facetFeature.tag}`;
-          } else if (facetType == "app.bsky.richtext.facet#link") {
-            facetLink = facetFeature.uri;
-          } else if (facetType == "app.bsky.richtext.facet#mention") {
-            facetLink = `https://bsky.app/profile/${facetFeature.did}`;
-          }
-    
-          if (charIdx < facet.index.byteStart) {
-            const preFacetText = utf8Text.slice(charIdx, facet.index.byteStart);
-            richText += utf8Decoder.decode(preFacetText)
-          }
-    
-          const facetText = utf8Text.slice(facet.index.byteStart, facet.index.byteEnd);
-          richText += `<a href="${facetLink}" target="_blank">` + utf8Decoder.decode(facetText) + '</a>';
-    
-          charIdx = facet.index.byteEnd;
-        }
-    
-        if (charIdx < utf8Text.length) {
-          const postFacetText = utf8Text.slice(charIdx, utf8Text.length);
-          richText += utf8Decoder.decode(postFacetText);
-        }
-    
-        return richText;
-      }
-    
-      let renderAttachment = "";
-      if (comment.post.embed) {
-        const embedType = comment.post.embed.$type;
-    
-        if (embedType === "app.bsky.embed.external#view") {
-          const {uri, title, description} = comment.post.embed.external;
-          if (uri.includes(".gif?")) {
-            renderAttachment = `<img src="${uri}" title="${title}" alt="${description}">`;
-          }
-        } else if (embedType === "app.bsky.embed.images#view") {
-          const images = comment.post.record.embed.images;
-          renderAttachment = images.map(image => {
-            const thumb = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, true);
-            const orig = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, false);
-            return `<a href="${orig}" target="_blank"><img src="${thumb}" alt="${image.alt}"></a>`;
-          }).join('');
-        }
-      }
+            const facet = record.facets[facetIdx];
+            const facetFeature = facet.features[0];
+            const facetType = facetFeature.$type;
 
-        return `<ul class="comment" style="display: flex; list-style: none;">
-      <li style="margin-right: 10px;">
-        <img src="${comment.post.author.avatar}" width="42px" height="42px" style="clip-path: circle()" />
-      </li>
-      <li>
-        <div><a href="https://bsky.app/profile/${comment.post.author.handle}" rel="ugc" style="color: #000; text-decoration: none;">
+            var facetLink = "#";
+            if (facetType == "app.bsky.richtext.facet#tag") {
+                facetLink = `https://bsky.app/hashtag/${facetFeature.tag}`;
+            } else if (facetType == "app.bsky.richtext.facet#link") {
+                facetLink = facetFeature.uri;
+            } else if (facetType == "app.bsky.richtext.facet#mention") {
+                facetLink = `https://bsky.app/profile/${facetFeature.did}`;
+            }
+
+            if (charIdx < facet.index.byteStart) {
+                const preFacetText = utf8Text.slice(charIdx, facet.index.byteStart);
+                richText += utf8Decoder.decode(preFacetText)
+            }
+
+            const facetText = utf8Text.slice(facet.index.byteStart, facet.index.byteEnd);
+            richText += `<a href="${facetLink}" target="_blank">` + utf8Decoder.decode(facetText) + '</a>';
+
+            charIdx = facet.index.byteEnd;
+        }
+
+        if (charIdx < utf8Text.length) {
+            const postFacetText = utf8Text.slice(charIdx, utf8Text.length);
+            richText += utf8Decoder.decode(postFacetText);
+        }
+
+        return richText;
+    }
+
+    let renderAttachment = "";
+    if (comment.post.embed) {
+        const embedType = comment.post.embed.$type;
+
+        if (embedType === "app.bsky.embed.external#view") {
+            const {
+                uri,
+                title,
+                description
+            } = comment.post.embed.external;
+            if (uri.includes(".gif?")) {
+                renderAttachment = `<img src="${uri}" title="${title}" alt="${description}">`;
+            }
+        } else if (embedType === "app.bsky.embed.images#view") {
+            const images = comment.post.record.embed.images;
+            renderAttachment = images.map(image => {
+                const thumb = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, true);
+                const orig = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, false);
+                return `<a href="${orig}" target="_blank"><img src="${thumb}" alt="${image.alt}"></a>`;
+            }).join('');
+        }
+    }
+
+    return `
+  <ul class="comment" style="display: flex; list-style: none;">
+    <li style="margin-right: 10px;">
+      <img src="${comment.post.author.avatar}" width="42px" height="42px" style="clip-path: circle()" />
+    </li>
+    <li>
+      <div>
+        <a href="https://bsky.app/profile/${comment.post.author.handle}" rel="ugc" style="color: #000; text-decoration: none;">
           <strong class="display-name" style="white-space: nowrap;">${comment.post.author.displayName}</strong>
           <span class="handle" style="white-space: nowrap;">@${comment.post.author.handle}</span>
           <span style="white-space: nowrap;">${replyDate.toLocaleString()}</span>
-        </a></div>
-        <a href="${ToBskyUrl(comment.post.uri)}" rel="ugc" style="color: #000; text-decoration: none;">
+        </a>
+      </div>
+      <a href="${ToBskyUrl(comment.post.uri)}" rel="ugc" style="color: #000; text-decoration: none;">
         <div>${renderRichText(comment.post.record)}</div>
         <div>${renderAttachment}</div>
         <div>
-          <!-- icons from https://www.systemuicons.com/ -->
-            <span style="margin-right: 1em;">
-            <svg style="position: relative; top: .3em;" xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21">
-                <path fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" d="M11 16.517c4.418 0 8-3.284 8-7.017S15.418 3 11 3S3 6.026 3 9.759c0 1.457.546 2.807 1.475 3.91L3.5 18.25l3.916-2.447a9.2 9.2 0 0 0 3.584.714" />
-            </svg>
-            ${comment.post.repostCount > 0 ? comment.post.repostCount : ''}
-            </span>
-
-
-            <span style="margin-right: 1em;">
-            <svg style="position: relative; top: .3em;" xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21">
-                <g fill="none" fill-rule="evenodd" stroke="#000000" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m13.5 13.5l3 3l3-3" />
-                    <path d="M9.5 4.5h3a4 4 0 0 1 4 4v8m-9-9l-3-3l-3 3" />
-                    <path d="M11.5 16.5h-3a4 4 0 0 1-4-4v-8" />
-                </g>
-            </svg>
-            ${comment.post.repostCount > 0 ? comment.post.repostCount : ''}
+        <!-- icons from https://www.systemuicons.com/ -->
+        <span style="margin-right: 1em;">
+          <svg style="position: relative; top: .3em;" xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21">
+            <path fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" d="M11 16.517c4.418 0 8-3.284 8-7.017S15.418 3 11 3S3 6.026 3 9.759c0 1.457.546 2.807 1.475 3.91L3.5 18.25l3.916-2.447a9.2 9.2 0 0 0 3.584.714" />
+          </svg>
+          ${comment.post.repostCount > 0 ? comment.post.repostCount : ''}
         </span>
 
         <span style="margin-right: 1em;">
-            <svg style="position: relative; top: .3em;" xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21">
-                <path fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" d="M10.5 6.5c.5-2.5 4.343-2.657 6-1c1.603 1.603 1.5 4.334 0 6l-6 6l-6-6a4.243 4.243 0 0 1 0-6c1.55-1.55 5.5-1.5 6 1" />
-            </svg>
-            ${comment.post.likeCount > 0 ? comment.post.likeCount : ''}
+          <svg style="position: relative; top: .3em;" xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21">
+            <g fill="none" fill-rule="evenodd" stroke="#000000" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m13.5 13.5l3 3l3-3" />
+            <path d="M9.5 4.5h3a4 4 0 0 1 4 4v8m-9-9l-3-3l-3 3" />
+            <path d="M11.5 16.5h-3a4 4 0 0 1-4-4v-8" />
+            </g>
+          </svg>
+          ${comment.post.repostCount > 0 ? comment.post.repostCount : ''}
         </span>
-            
-        </div></a>
-        <div class="replies" style="margin-top: 1em;">
+
+        <span style="margin-right: 1em;">
+          <svg style="position: relative; top: .3em;" xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21">
+            <path fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" d="M10.5 6.5c.5-2.5 4.343-2.657 6-1c1.603 1.603 1.5 4.334 0 6l-6 6l-6-6a4.243 4.243 0 0 1 0-6c1.55-1.55 5.5-1.5 6 1" />
+          </svg>
+          ${comment.post.likeCount > 0 ? comment.post.likeCount : ''}
+        </span>
+
         </div>
-      </li>
-    </ul>`;
-    }
+      </a>
+      <div class="replies" style="margin-top: 1em;"></div>
+    </li>
+  </ul>
+`;
+}
