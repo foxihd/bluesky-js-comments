@@ -78,6 +78,10 @@ const rootElement = document.querySelector("#comments");
             }
         }
 
+        function ToBskyImgUrl(did, blobLink, thumb) {
+          return `https://cdn.bsky.app/img/${thumb ? "feed_thumb" : "feed_fullsize"}/plain/${did}/${blobLink}`;
+        }       
+
       function renderComments(thread)
       {
         const commentsNode = document.createElement("div");
@@ -105,6 +109,67 @@ const rootElement = document.querySelector("#comments");
       function renderComment(comment) {
        var replyDate = new Date(comment.post.record.createdAt);
 
+      function renderRichText(record) {
+        let richText = ``
+    
+        const textEncoder = new TextEncoder();
+        const utf8Decoder = new TextDecoder();
+        const utf8Text = new Uint8Array(record.text.length * 3);
+        textEncoder.encodeInto(record.text, utf8Text);
+    
+        var charIdx = 0;
+        for (const facetIdx in record.facets) {
+          const facet = record.facets[facetIdx];
+          const facetFeature = facet.features[0];
+          const facetType = facetFeature.$type;
+    
+          var facetLink = "#";
+          if (facetType == "app.bsky.richtext.facet#tag") {
+            facetLink = `https://bsky.app/hashtag/${facetFeature.tag}`;
+          } else if (facetType == "app.bsky.richtext.facet#link") {
+            facetLink = facetFeature.uri;
+          } else if (facetType == "app.bsky.richtext.facet#mention") {
+            facetLink = `https://bsky.app/profile/${facetFeature.did}`;
+          }
+    
+          if (charIdx < facet.index.byteStart) {
+            const preFacetText = utf8Text.slice(charIdx, facet.index.byteStart);
+            richText += utf8Decoder.decode(preFacetText)
+          }
+    
+          const facetText = utf8Text.slice(facet.index.byteStart, facet.index.byteEnd);
+          richText += `<a href="${facetLink}" target="_blank">` + utf8Decoder.decode(facetText) + '</a>';
+    
+          charIdx = facet.index.byteEnd;
+        }
+    
+        if (charIdx < utf8Text.length) {
+          const postFacetText = utf8Text.slice(charIdx, utf8Text.length);
+          richText += utf8Decoder.decode(postFacetText);
+        }
+    
+        return richText;
+      }
+    
+      let renderAttachment = "";
+      if (comment.post.embed) {
+        const embedType = comment.post.embed.$type;
+    
+        if (embedType === "app.bsky.embed.external#view") {
+          const {uri, title, description} = comment.post.embed.external;
+          if (uri.includes(".gif?")) {
+            renderAttachment = `<img src="${uri}" title="${title}" alt="${description}">`;
+          }
+        } else if (embedType === "app.bsky.embed.images#view") {
+          const images = comment.post.record.embed.images;
+          renderAttachment = images.map(image => {
+            const thumb = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, true);
+            const orig = ToBskyImgUrl(comment.post.author.did, image.image.ref.$link, false);
+            return `<a href="${orig}" target="_blank"><img src="${thumb}" alt="${image.alt}"></a>`;
+          }).join('');
+        }
+      }
+
         return `<ul class="comment" style="display: flex; list-style: none;">
       <li style="margin-right: 10px;">
         <img src="${comment.post.author.avatar}" width="42px" height="42px" style="clip-path: circle()" />
@@ -116,7 +181,8 @@ const rootElement = document.querySelector("#comments");
           <span style="white-space: nowrap;">${replyDate.toLocaleString()}</span>
         </a></div>
         <a href="${ToBskyUrl(comment.post.uri)}" rel="ugc" style="color: #000; text-decoration: none;">
-        <div>${comment.post.record.text}</div>
+        <div>${renderRichText(comment.post.record)}</div>
+        <div>${renderAttachment}</div>
         <div>
           <!-- icons from https://www.systemuicons.com/ -->
             <span style="margin-right: 1em;">
