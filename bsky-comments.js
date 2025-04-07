@@ -78,6 +78,10 @@ const rootElement = document.querySelector("#comments");
             }
         }
 
+        function ToBskyImgUrl(did, blobLink, thumb) {
+          return `https://cdn.bsky.app/img/${thumb ? "feed_thumbnail" : "feed_fullsize"}/plain/${did}/${blobLink}`;
+      }      
+
       function renderRichText(record) {
         let richText = ``
 
@@ -120,6 +124,32 @@ const rootElement = document.querySelector("#comments");
         return richText;
       }
 
+      function renderAttachment(post) {
+        let attachment = "";
+        if (post.embed) {
+            const embedType = post.embed.$type;
+
+            if (embedType === "app.bsky.embed.external#view") {
+                const {uri, title, description} = post.embed.external;
+                if (uri.includes(".gif?")) {
+                    attachment = `<img src="${uri}" title="${title}" alt="${description}">`;
+                }
+            } else if (embedType === "app.bsky.embed.images#view") {
+                const images = post.record.embed.images;
+                attachment = images.map(image => {
+                    const thumb = ToBskyImgUrl(post.author.did, image.image.ref.$link, true);
+                    const src = ToBskyImgUrl(post.author.did, image.image.ref.$link, false);
+                    return `<a href="${src}" target="_blank"><img src="${thumb}" alt="${image.alt}"></a>`;
+                }).join('');
+            } else if (embedType === "app.bsky.embed.video#view") {
+                const video = post.record.embed.video;
+                return `<video controls poster="${post.embed.thumbnail}">
+                    <source src="https://bsky.social/xrpc/com.atproto.sync.getBlob?cid=${video.ref.$link}&did=${post.author.did}" type="${video.mimeType}"></video>`
+            }
+        }
+        return attachment;
+      }
+
       function renderComments(thread)
       {
         const commentsNode = document.createElement("div");
@@ -159,6 +189,7 @@ const rootElement = document.querySelector("#comments");
         </a></div>
         <a href="${ToBskyUrl(comment.post.uri)}" rel="ugc" style="color: #000; text-decoration: none;">
         <div>$${renderRichText(comment.post.record)}</div>
+        <div class="attachments">${renderAttachment(comment.post)}</div>
         <div>
           <!-- icons from https://www.systemuicons.com/ -->
             <span style="margin-right: 1em;">
